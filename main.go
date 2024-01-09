@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,9 +18,33 @@ func runCommand(command string, args ...string) error {
 func main() {
 	var domain string
 
-	fmt.Print("Enter domain name: ")
-	fmt.Scanln(&domain)
+	if len(os.Args) > 1 {
+		if os.Args[1] == "-l" && len(os.Args) > 2 {
+			// Read the domain from the file specified by -l option
+			filePath := os.Args[2]
+			file, err := os.Open(filePath)
+			if err != nil {
+				fmt.Println("Error opening file:", err)
+				os.Exit(1)
+			}
+			defer file.Close()
 
+			scanner := bufio.NewScanner(file)
+			if scanner.Scan() {
+				domain = scanner.Text()
+			} else {
+				fmt.Println("Error reading domain from file.")
+				os.Exit(1)
+			}
+		} else {
+			// Use the domain from command-line argument
+			domain = os.Args[1]
+		}
+	} else {
+		// Prompt the user to enter a domain interactively
+		fmt.Print("Enter domain name: ")
+		fmt.Scanln(&domain)
+	}
 	fmt.Println("[*] Running subdomain enumeration...")
 	runCommand("subfinder", "-d", domain, "-silent", "-all", "-t", "100", "-o", fmt.Sprintf("%s/subfinder-01.txt", domain))
 
@@ -43,7 +68,7 @@ func main() {
 	runCommand("amass", "enum", "-passive", "-d", domain, fmt.Sprintf("%s/findomainx.txt", domain))
 
 	fmt.Println("[*] Sorting and removing duplicates from all subdomain files...")
-	runCommand("sh", "-c", fmt.Sprintf("cat %s/*.txt | sort | uniq > %s/finaloutput.txt", domain, domain))
+	runCommand("sh", "-c", fmt.Sprintf("grep -vE '^_' %s/*.txt | sed 's/[^a-zA-Z0-9.-]/ /g' | sort | uniq > %s/finaloutput.txt", domain, domain))
 
 	fmt.Println("[*] Running httpx to find live domains status !!")
 	runCommand("sh", "-c", fmt.Sprintf("cat %s/finaloutput.txt | httpx -silent -threads 50 > %s/httpx-live.txt", domain, domain))
