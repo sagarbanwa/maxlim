@@ -19,5 +19,8 @@ Feel free to add more tools or customize the configuration as needed. (also you 
 
 Run the following command:
 
-```bash
-main.exe domain.com
+``` maxlim.exe -l urls.tx ```
+
+``` ./maxlim -l urls.txt ```
+
+``` maxlim.exe domain.com ```
